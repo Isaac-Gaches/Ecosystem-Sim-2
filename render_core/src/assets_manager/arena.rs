@@ -1,4 +1,4 @@
-use crate::assets::handle::Handle;
+use crate::assets_manager::handle::Handle;
 
 struct Slot<T> {
     value: Option<T>,
@@ -11,6 +11,12 @@ pub struct Arena<T> {
 }
 
 impl<T> Arena<T> {
+    pub fn new() -> Self {
+        Self{
+            slots: vec![],
+            free: vec![],
+        }
+    }
     pub fn insert(&mut self, value: T) -> Handle<T> {
         if let Some(index) = self.free.pop() {
             let slot = &mut self.slots[index as usize];

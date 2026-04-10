@@ -1,4 +1,4 @@
-mod instance;
+pub(crate) mod instance;
 pub mod material;
 pub mod mesh;
 pub mod texture;
