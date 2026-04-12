@@ -1,4 +1,6 @@
-pub mod asset_manager;
-pub mod handle;
+pub(crate) mod asset_manager;
+pub(crate) mod handle;
 mod arena;
-mod asset_registry;
+pub(crate) mod asset_registry;
+
+pub use handle::Handle;

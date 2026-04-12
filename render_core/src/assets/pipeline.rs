@@ -1,34 +1,36 @@
+use wgpu::{Device, SurfaceConfiguration};
+use wgpu::ShaderModule;
+use crate::assets_manager::asset_manager::AssetManager;
+use crate::assets_manager::handle::Handle;
+
 pub struct Pipeline {
     pub pipeline: wgpu::RenderPipeline,
+    pub material_layout: wgpu::BindGroupLayout,
 }
 
 pub struct PipelineBuilder<'a> {
-    device: &'a wgpu::Device,
-    shader: &'a wgpu::ShaderModule,
-    layout: Option<&'a wgpu::PipelineLayout>,
+    shader: Handle<ShaderModule>,
     vertex_layouts: Vec<wgpu::VertexBufferLayout<'a>>,
-    color_format: wgpu::TextureFormat,
     depth_format: Option<wgpu::TextureFormat>,
+    material_entries: Vec<wgpu::BindGroupLayoutEntry>,
 }
 
 impl<'a> PipelineBuilder<'a> {
     pub fn new(
-        device: &'a wgpu::Device,
-        shader: &'a wgpu::ShaderModule,
-        color_format: wgpu::TextureFormat,
+        shader: Handle<ShaderModule>,
     ) -> Self {
         Self {
-            device,
             shader,
-            layout: None,
             vertex_layouts: Vec::new(),
-            color_format,
             depth_format: None,
+            material_entries: vec![],
         }
     }
-
-    pub fn layout(mut self, layout: &'a wgpu::PipelineLayout) -> Self {
-        self.layout = Some(layout);
+    pub fn material_layout(
+        mut self,
+        entries: &[wgpu::BindGroupLayoutEntry],
+    ) -> Self {
+        self.material_entries = entries.to_vec();
         self
     }
 
@@ -42,23 +44,43 @@ impl<'a> PipelineBuilder<'a> {
         self
     }
 
-    pub fn build(self) -> Pipeline {
-        let pipeline = self.device.create_render_pipeline(
+    pub fn build(self,device: &Device,asset_manager: &AssetManager,surface_config: &SurfaceConfiguration) -> Pipeline {
+        let shader = asset_manager.shaders.get(self.shader).unwrap();
+
+        let material_layout = device.create_bind_group_layout(
+            &wgpu::BindGroupLayoutDescriptor {
+                label: Some("material layout"),
+                entries: &self.material_entries,
+            }
+        );
+
+        let pipeline_layout = device.create_pipeline_layout(
+            &wgpu::PipelineLayoutDescriptor {
+                label: Some("pipeline layout"),
+                bind_group_layouts: &[
+                   // camera_layout,
+                    Option::from(&material_layout),
+                ],
+                immediate_size: 0,
+            }
+        );
+
+        let pipeline = device.create_render_pipeline(
             &wgpu::RenderPipelineDescriptor {
                 label: Some("pipeline"),
-                layout: self.layout,
+                layout: Some(&pipeline_layout),
                 vertex: wgpu::VertexState {
-                    module: self.shader,
+                    module: shader,
                     entry_point: Option::from("vs_main"),
                     compilation_options: Default::default(),
                     buffers: &self.vertex_layouts,
                 },
                 fragment: Some(wgpu::FragmentState {
-                    module: self.shader,
+                    module: shader,
                     entry_point: Option::from("fs_main"),
                     compilation_options: Default::default(),
                     targets: &[Some(wgpu::ColorTargetState {
-                        format: self.color_format,
+                        format: surface_config.format,
                         blend: Some(wgpu::BlendState::REPLACE),
                         write_mask: wgpu::ColorWrites::ALL,
                     })],
@@ -79,6 +101,30 @@ impl<'a> PipelineBuilder<'a> {
             }
         );
 
-        Pipeline { pipeline }
+        Pipeline { pipeline, material_layout }
+    }
+}
+
+pub fn texture_2d(binding: u32) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::FRAGMENT,
+        ty: wgpu::BindingType::Texture {
+            multisampled: false,
+            view_dimension: wgpu::TextureViewDimension::D2,
+            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+        },
+        count: None,
+    }
+}
+
+pub fn sampler(binding: u32) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::FRAGMENT,
+        ty: wgpu::BindingType::Sampler(
+            wgpu::SamplerBindingType::Filtering
+        ),
+        count: None,
     }
 }

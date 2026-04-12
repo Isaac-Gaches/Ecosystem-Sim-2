@@ -1,56 +1,33 @@
+use wgpu::Device;
 use crate::assets_manager::handle::Handle;
 use crate::assets::pipeline::Pipeline;
 use crate::assets::texture::Texture;
+use crate::assets_manager::asset_manager::AssetManager;
 
 pub struct Material {
-    pub pipeline: Handle<Pipeline>,
     pub bind_group: wgpu::BindGroup,
-}
-
-impl Material {
-    pub fn new(
-        device: &wgpu::Device,
-        layout: &wgpu::BindGroupLayout,
-        texture: &Texture,
-        pipeline: Handle<Pipeline>,
-    ) -> Material {
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("material bind group"),
-            layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&texture.sampler),
-                },
-            ],
-        });
-
-        Material {
-            pipeline,
-            bind_group,
-        }
-    }
+    pub pipeline: Handle<Pipeline>,
 }
 
 pub struct MaterialBuilder<'a> {
-    device: &'a wgpu::Device,
-    layout: &'a wgpu::BindGroupLayout,
+  //  device: &'a wgpu::Device,
+  //  layout: &'a wgpu::BindGroupLayout,
     entries: Vec<wgpu::BindGroupEntry<'a>>,
+    pipeline: Handle<Pipeline>,
 }
 
 impl<'a> MaterialBuilder<'a> {
     pub fn new(
-        device: &'a wgpu::Device,
-        layout: &'a wgpu::BindGroupLayout,
+      //  device: &'a wgpu::Device,
+      //  layout: &'a wgpu::BindGroupLayout,
+      pipeline: Handle<Pipeline>,
     ) -> Self {
         Self {
-            device,
-            layout,
+          //  device,
+           // layout,
+           // layout: &(),
             entries: Vec::new(),
+            pipeline,
         }
     }
 
@@ -96,18 +73,20 @@ impl<'a> MaterialBuilder<'a> {
         self
     }
 
-    pub fn build(self, pipeline: Handle<Pipeline>) -> Material {
-        let bind_group = self.device.create_bind_group(
+    pub fn build(self,device:&Device, asset_manager: &AssetManager) -> Material {
+        let pipeline = asset_manager.pipelines.get(self.pipeline.clone()).unwrap();
+
+        let bind_group = device.create_bind_group(
             &wgpu::BindGroupDescriptor {
                 label: Some("material bind group"),
-                layout: self.layout,
+                layout: &pipeline.material_layout,
                 entries: &self.entries,
             }
         );
 
         Material {
-            pipeline,
             bind_group,
+            pipeline: self.pipeline,
         }
     }
 }
