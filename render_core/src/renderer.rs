@@ -3,10 +3,10 @@ use wgpu::{Device, Queue, ShaderModule,Surface, SurfaceConfiguration};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 use crate::{frame::Frame};
-use crate::assets::instance::InstanceBuffer;
 use crate::assets::material::{Material, MaterialBuilder};
 use crate::assets::mesh::Mesh;
 use crate::assets::pipeline::{Pipeline, PipelineBuilder};
+use crate::assets::uniform::Uniform;
 use crate::assets_manager::asset_manager::AssetManager;
 use crate::assets_manager::asset_registry::AssetRegistry;
 use crate::assets_manager::handle::Handle;
@@ -57,8 +57,8 @@ impl Renderer {
 
         let asset_manager = AssetManager::new();
         let asset_registry = AssetRegistry::new();
-        let instance_buffer = InstanceBuffer::new(&device,16384);
-        let frame = Frame::new(instance_buffer);
+
+        let frame = Frame::new(&device);
 
         Self {
             device,
@@ -118,7 +118,6 @@ impl Renderer {
                     view: &view,
                     depth_slice: None,
                     resolve_target: None,
-
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
                             r: 0.5,
@@ -187,12 +186,22 @@ impl Renderer {
         self.asset_manager.materials.insert(material)
     }
 
+    pub fn create_uniform(&mut self) -> Handle<Uniform> {
+        let uniform = Uniform::new(&self.device);
+        self.asset_manager.uniforms.insert(uniform)
+    }
+
     pub fn load_shader(&mut self,src: &'static str) -> Handle<ShaderModule>{
         let shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(src.into()),
         });
-
         self.asset_manager.shaders.insert(shader)
     }
+
+    pub fn write_uniform<T: bytemuck::Pod>(&self,handle: Handle<Uniform>,data: T){
+        let uniform = self.asset_manager.uniforms.get(handle).unwrap();
+        self.queue.write_buffer(&uniform.buffer, 0, bytemuck::cast_slice(&[data]));
+    }
 }
+

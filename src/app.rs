@@ -11,6 +11,7 @@ use render_core::Renderer;
 pub struct App{
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
+
     material: Option<Handle<Material>>,
     instance: Option<Instance>,
     mesh: Option<Handle<Mesh>>,
@@ -40,22 +41,40 @@ impl ApplicationHandler for App{
 
         let mut renderer = pollster::block_on(Renderer::new(window.clone()));
 
-        let vertices = vec![Vertex::new([0.,0.]),Vertex::new([1.,0.]),Vertex::new([1.,1.]),Vertex::new([0.,1.])];
-        let indices = vec![0, 1, 2, 0, 2, 3];
-        let mesh = renderer.create_mesh(vertices.as_slice(), indices.as_slice());
+        let vertices = [
+            Vertex::new([0.,0.]),
+            Vertex::new([1.,0.]),
+            Vertex::new([1.,1.]),
+            Vertex::new([0.,1.])
+        ];
+
+        let indices = [0, 1, 2, 0, 2, 3];
+
+        let mesh = renderer.create_mesh(&vertices, &indices);
 
         let shader = renderer.load_shader(include_str!("render/shader.wgsl"));
-        let pipeline_builder = PipelineBuilder::new(shader).vertex_layout(Vertex::buffer_layout()).vertex_layout(Instance::buffer_layout());
+
+        let pipeline_builder = PipelineBuilder::new(shader)
+            .vertex_layout(Vertex::buffer_layout())
+            .vertex_layout(Instance::buffer_layout())
+            .material_layout(&[uniform(0)]);
+
         let pipeline = renderer.create_pipeline(pipeline_builder);
 
-        let material_builder = MaterialBuilder::new(pipeline);
+        let camera_buffer = renderer.create_uniform();
+
+        renderer.write_uniform(camera_buffer.clone(),Camera{ num: 0.2 });
+
+        let material_builder = MaterialBuilder::new(pipeline)
+            .uniform(0,camera_buffer);
+
         let material = renderer.create_material(material_builder);
 
-        let instance = Instance::from_transform(Vec3::new(-0.5, -0.5, 0.0), Quat::IDENTITY, Vec3::ONE, );
+        let instance = Instance::from_transform(Vec3::new(-0.5, -0.5, 0.0), Quat::IDENTITY, Vec3::ONE);
 
         self.material = Some(material);
         self.mesh = Some(mesh);
-        self.instance=Some(instance);
+        self.instance= Some(instance);
 
         self.window = Some(window);
         self.renderer = Some(renderer);
@@ -97,5 +116,11 @@ impl ApplicationHandler for App{
             window.request_redraw();
         }
     }
+}
+
+#[repr(C)]
+#[derive(Copy,Clone,bytemuck::Pod, bytemuck::Zeroable)]
+struct Camera{
+    num:f32,
 }
 

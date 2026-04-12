@@ -9,6 +9,13 @@ struct Vertex{
     @location(0) position: vec2<f32>
 }
 
+struct Camera{
+    num: f32
+}
+
+@group(0) @binding(0)
+var<uniform> camera: Camera;
+
 @vertex
 fn vs_main(vertex: Vertex, instance: Instance) -> @builtin(position) vec4<f32> {
     let transform = mat4x4<f32>(instance.c0, instance.c1, instance.c2, instance.c3);
@@ -18,5 +25,5 @@ fn vs_main(vertex: Vertex, instance: Instance) -> @builtin(position) vec4<f32> {
 
 @fragment
 fn fs_main(@builtin(position) in: vec4<f32>)-> @location(0) vec4<f32>{
-    return vec4<f32>(1.0);
+    return vec4<f32>(camera.num);
 }

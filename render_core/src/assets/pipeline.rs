@@ -1,4 +1,4 @@
-use wgpu::{Device, SurfaceConfiguration};
+use wgpu::{BufferBindingType, Device, SurfaceConfiguration};
 use wgpu::ShaderModule;
 use crate::assets_manager::asset_manager::AssetManager;
 use crate::assets_manager::handle::Handle;
@@ -58,8 +58,7 @@ impl<'a> PipelineBuilder<'a> {
             &wgpu::PipelineLayoutDescriptor {
                 label: Some("pipeline layout"),
                 bind_group_layouts: &[
-                   // camera_layout,
-                    Option::from(&material_layout),
+                    Some(&material_layout),
                 ],
                 immediate_size: 0,
             }
@@ -125,6 +124,19 @@ pub fn sampler(binding: u32) -> wgpu::BindGroupLayoutEntry {
         ty: wgpu::BindingType::Sampler(
             wgpu::SamplerBindingType::Filtering
         ),
+        count: None,
+    }
+}
+
+pub fn uniform(binding: u32) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+        ty: wgpu::BindingType::Buffer {
+            ty: BufferBindingType::Uniform,
+            has_dynamic_offset: false,
+            min_binding_size: None,
+        },
         count: None,
     }
 }

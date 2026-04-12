@@ -1,5 +1,5 @@
 use std::ops::Range;
-use wgpu::{Queue};
+use wgpu::{Device, Queue};
 use crate::assets::instance::{InstanceBuffer, Instance};
 use crate::assets_manager::handle::Handle;
 use crate::assets::material::Material;
@@ -28,7 +28,8 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub(crate) fn new(instance_buffer: InstanceBuffer) -> Self {
+    pub(crate) fn new(device: &Device) -> Self {
+        let instance_buffer = InstanceBuffer::new(&device,16384);
         Self {
             items: Vec::new(),
             instance_buffer,
